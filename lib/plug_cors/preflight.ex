@@ -11,10 +11,16 @@ defmodule PlugCors.Preflight do
     ]
   end
 
+  defp debug(message) do
+      IO.puts "[CORS-DEBUG]" <> message
+  end
+
+
   def call(conn, config) do
     origin = get_req_header(conn, "origin")
     case is_invalid_origin?(origin, config[:origins]) do
       true ->
+        debug "invalid origin, you fail"
         send_unauthorized(conn)
       _ ->
         conn
@@ -33,9 +39,9 @@ defmodule PlugCors.Preflight do
 
   defp is_origin_allowed?(origin_to_test, allowed_origin) do
     case allowed_origin do
-      "*." <> domain -> 
+      "*." <> domain ->
         String.contains?(origin_to_test, domain)
-      _ -> 
+      _ ->
         String.contains?(origin_to_test, allowed_origin)
     end
   end
@@ -47,13 +53,14 @@ defmodule PlugCors.Preflight do
 
   defp check_request_method({ conn, method }, config) do
     case are_all_allowed?([method], config[:methods]) do
-      false -> 
-        send_unauthorized(conn) 
+      false ->
+        debug "Not all are allowed"
+        send_unauthorized(conn)
       _ ->
         conn
-        |> get_request_headers      
+        |> get_request_headers
         |> check_access_control_headers(config)
-    end 
+    end
   end
 
   defp get_request_headers(conn) do
@@ -62,16 +69,18 @@ defmodule PlugCors.Preflight do
   end
 
   defp check_access_control_headers({conn, []}, config) do
-    send_ok(conn, config) 
+    send_ok(conn, config)
   end
 
   defp check_access_control_headers({ conn, headers }, config) do
     headers = hd(headers) |> String.split(",") |> Enum.map(fn(x) -> String.strip(x) end)
     case are_all_allowed?(headers, config[:headers] ++ default_accept_headers ) do
-      true ->  
+      true ->
+        debug "all are allowed, you pass"
         send_ok(conn, config)
       _ ->
-        send_unauthorized(conn) 
+        debug "unauthorzed from check_access_control_headers"
+        send_unauthorized(conn)
     end
   end
 
@@ -95,9 +104,9 @@ defmodule PlugCors.Preflight do
   defp send_ok(conn, config) do
     origin = if config[:origins] == "*", do: "*", else: hd(get_req_header(conn, "origin"))
 
-    conn = conn     
+    conn = conn
     |> put_resp_header("access-control-allow-origin", origin)
-    |> put_resp_header("access-control-allow-methods", Enum.join(config[:methods], ",")) 
+    |> put_resp_header("access-control-allow-methods", Enum.join(config[:methods], ","))
     |> put_access_control_allow_headers(config[:headers])
 
     if config[:max_age] > 0 do
@@ -112,10 +121,11 @@ defmodule PlugCors.Preflight do
       conn = put_resp_header(conn, "access-control-expose-headers", Enum.join(config[:expose_headers], ","))
     end
     conn |> send_resp( 200, "") |> halt
-    
+
   end
 
   defp send_unauthorized(conn) do
+    debug "send_unauthorized, you failed furthur up the stack"
     conn |> send_resp( 403, "") |> halt
   end
 end

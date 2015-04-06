@@ -4,7 +4,7 @@ defmodule PlugCors.Mixfile do
   def project do
     [ app: :plug_cors,
       version: "0.7.1",
-      elixir: "~> 1.0.0",
+      elixir: ">= 1.0.0",
       description: description,
       package: package,
       deps: deps]
@@ -16,7 +16,7 @@ defmodule PlugCors.Mixfile do
 
   defp deps do
     [
-      {:plug, ">= 0.9.0"}, 
+      {:plug, ">= 0.9.0"},
       {:cowboy, "~> 1.0.0"},
       {:earmark, "~> 0.1", only: :dev},
       {:ex_doc, "~> 0.6", only: :dev},
